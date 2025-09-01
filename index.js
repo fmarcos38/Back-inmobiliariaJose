@@ -24,8 +24,9 @@ app.use('/propiedades', routerPropiedades);
 app.use('/emprendimientos', routerEmprendimientos);
 app.use('/meGusta', routerMegusta);
 
-app.listen(port, () => {
-    console.log(`Servidor escuchando en puerto: ${port}`);
+app.listen(port, "0.0.0.0", () => {
+    console.log(`Servidor escuchando en http://0.0.0.0:${port}`);
 });
+
 
 module.exports = app;  // Necesario para Vercel

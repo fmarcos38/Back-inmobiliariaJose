@@ -18,8 +18,9 @@ const url = process.env.URL;
 
 //trae propiedades
 const getProperties = async (req, res) => {
-    const { operacion, tipo, precioMin, precioMax, limit = 12, offset = 0, ambientes, destacadas } = req.query;
-    /* console.log("data: ", req.query) */
+    
+    const { operacion, tipo, precioMin, barrios, precioMax, limit = 12, offset = 0, ambientes, destacadas } = req.query;
+
     try {
         let propiedades = [];
         let fetchedCount = 0;
@@ -45,6 +46,17 @@ const getProperties = async (req, res) => {
         if (tipo && tipo !== 'Todas') {
             propiedades = propiedades.filter((p) => p.tipo.nombre === tipo);
         }
+
+        if (barrios.length >= 1) {   console.log("Entre")
+            // lo convertimos a array separando por coma y eliminando espacios extra
+            const barriosArray = barrios.split(",").map(b => b.trim());
+
+            propiedades = propiedades.filter((p) =>
+                barriosArray.includes(p.ubicacion.barrio)
+            );
+        }
+
+
 
         if (precioMin || precioMax) {
             const precioMinNum = precioMin ? Number(precioMin) : 0;
@@ -72,21 +84,21 @@ const getProperties = async (req, res) => {
                 !/\bargentina\b/i.test(p.ubicacion.ubicacion)
             );
         } */
-        if(destacadas){
+        if (destacadas) {
             propiedades = propiedades.filter(p => p.destacadaEnWeb === true)
         }
 
         const total = propiedades.length;
 
         //armo un nuevo array con las props destacadas primero
-        let propsDestacadas = []; 
-        let propsNoDestacadas = []; 
+        let propsDestacadas = [];
+        let propsNoDestacadas = [];
         let newProps = [];
 
         newProps = propiedades?.map(p => {
-            if(p.destacadaEnWeb === true){
+            if (p.destacadaEnWeb === true) {
                 propsDestacadas.push(p)
-            }else{
+            } else {
                 propsNoDestacadas.push(p)
             }
         })
@@ -112,8 +124,8 @@ const getProperties = async (req, res) => {
 };
 
 //detalle propiedad por ID
-const getProperty = async(req, res) => {
-    const {id} = req.params;
+const getProperty = async (req, res) => {
+    const { id } = req.params;
     try {
         let resp;
         resp = await axios.get(`https://www.tokkobroker.com/api/v1/property/${id}?lang=es_ar&format=json&key=${apiKey}`);
@@ -201,9 +213,39 @@ const getPropsEnMapa = async (req, res) => {
     }
 };
 
+//trae destacadas
+const getPropsDestacadas = async (req, res) => {
+
+    try {
+        let propiedades = [];
+        let fetchedCount = 0;
+        let currentOffset = 0;
+        const fetchLimit = 20; // Máximo que puede traer la API en una sola llamada
+
+        // Recuperar todas las propiedades disponibles desde la API
+        do {
+            const resp = await axios.get(`${url}&limit=${fetchLimit}&offset=${currentOffset}&key=${apiKey}`);
+            const fetchedProps = normalizaProps(resp.data.objects);
+            propiedades = [...propiedades, ...fetchedProps];
+            fetchedCount = fetchedProps.length;
+            currentOffset += fetchLimit;
+        } while (fetchedCount === fetchLimit); // Continúa hasta que no se reciban más propiedades
+
+        let propsDestacadas = propiedades.filter(p => p.destacadaEnWeb === true);
+        const total = propsDestacadas.length;
+        res.json({
+            total,
+            propsDestacadas
+        });
+    } catch (error) {
+        console.error("Error en getProperties:", error.message);
+        res.status(500).json({ error: "Error al obtener las propiedades." });
+    }
+};
 
 module.exports = {
     getProperties,
     getProperty,
-    getPropsEnMapa
+    getPropsEnMapa,
+    getPropsDestacadas
 }
