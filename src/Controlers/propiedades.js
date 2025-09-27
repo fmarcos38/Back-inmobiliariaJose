@@ -18,7 +18,7 @@ const url = process.env.URL;
 
 //trae propiedades
 const getProperties = async (req, res) => {
-    
+
     const { operacion, tipo, precioMin, barrios, precioMax, limit = 12, offset = 0, ambientes, destacadas } = req.query;
 
     try {
@@ -43,11 +43,16 @@ const getProperties = async (req, res) => {
             );
         }
 
-        if (tipo && tipo !== 'Todas') {
-            propiedades = propiedades.filter((p) => p.tipo.nombre === tipo);
+        if (tipo && tipo?.length >= 1) {
+            // lo convertimos a array separando por coma y eliminando espacios extra
+            const tipoPropsArray = tipo.split(",").map(p => p.trim());
+
+            propiedades = propiedades.filter((p) => 
+                tipoPropsArray.includes(p.tipo.nombre)
+            );
         }
 
-        if (barrios.length >= 1) {   console.log("Entre")
+        if (barrios?.length >= 1) {   
             // lo convertimos a array separando por coma y eliminando espacios extra
             const barriosArray = barrios.split(",").map(b => b.trim());
 
@@ -55,8 +60,6 @@ const getProperties = async (req, res) => {
                 barriosArray.includes(p.ubicacion.barrio)
             );
         }
-
-
 
         if (precioMin || precioMax) {
             const precioMinNum = precioMin ? Number(precioMin) : 0;
@@ -78,12 +81,7 @@ const getProperties = async (req, res) => {
         if (ambientes && ambientes === 'mas') {
             propiedades = propiedades.filter((p) => p.ambientes >= 5);
         }
-        // Filtrar propiedades que NO son de Argentina
-        /* if (internacional === "true") {
-            propiedades = propiedades.filter((p) =>
-                !/\bargentina\b/i.test(p.ubicacion.ubicacion)
-            );
-        } */
+
         if (destacadas) {
             propiedades = propiedades.filter(p => p.destacadaEnWeb === true)
         }
